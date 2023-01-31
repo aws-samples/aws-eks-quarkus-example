@@ -1,0 +1,31 @@
+FROM public.ecr.aws/lts/ubuntu:22.04 AS builder
+LABEL maintainer="Sascha Möllering <smoell@amazon.de>"
+
+RUN apt-get update --fix-missing && apt-get install zip curl -y
+
+RUN \
+    curl -s "https://get.sdkman.io" | bash; \
+    bash -c "source $HOME/.sdkman/bin/sdkman-init.sh; \
+    sdk install java 17.0.5-amzn; \
+    sdk install maven;"
+
+COPY ./pom.xml ./pom.xml
+COPY src ./src/
+
+RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && mvn -Dmaven.test.skip=true clean package"
+
+FROM registry.access.redhat.com/ubi8/openjdk-17:1.11
+
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en'
+
+# We make four distinct layers so if there are application changes the library layers can be re-used
+COPY --from=builder --chown=185 target/quarkus-app/lib/ /deployments/lib/
+COPY --from=builder --chown=185 target/quarkus-app/*.jar /deployments/
+COPY --from=builder --chown=185 target/quarkus-app/app/ /deployments/app/
+COPY --from=builder --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 8080
+USER 185
+ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
