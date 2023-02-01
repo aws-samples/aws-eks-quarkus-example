@@ -1,6 +1,0 @@
-com/amazon/customerService/model/CustomerCommand.class
-com/amazon/customerService/service/AbstractService.class
-com/amazon/customerService/service/EventBridgeService.class
-com/amazon/customerService/service/CustomerService.class
-com/amazon/customerService/CustomerResource.class
-com/amazon/customerService/model/Customer.class

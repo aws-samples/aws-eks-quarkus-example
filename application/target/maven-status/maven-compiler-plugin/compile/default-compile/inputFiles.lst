@@ -1,6 +1,0 @@
-/home/ec2-user/environment/aws-eks-quarkus-example/application/src/main/java/com/amazon/customerService/service/EventBridgeService.java
-/home/ec2-user/environment/aws-eks-quarkus-example/application/src/main/java/com/amazon/customerService/model/CustomerCommand.java
-/home/ec2-user/environment/aws-eks-quarkus-example/application/src/main/java/com/amazon/customerService/model/Customer.java
-/home/ec2-user/environment/aws-eks-quarkus-example/application/src/main/java/com/amazon/customerService/service/CustomerService.java
-/home/ec2-user/environment/aws-eks-quarkus-example/application/src/main/java/com/amazon/customerService/CustomerResource.java
-/home/ec2-user/environment/aws-eks-quarkus-example/application/src/main/java/com/amazon/customerService/service/AbstractService.java
