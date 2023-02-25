@@ -19,106 +19,57 @@
 
 package com.amazon.customerService.service;
 
-import static java.time.ZoneOffset.UTC;
+import javax.enterprise.context.ApplicationScoped;
+import lombok.extern.jbosslog.JBossLog;
+import software.amazon.awssdk.auth.credentials.WebIdentityTokenFileCredentialsProvider;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsResultEntry;
 
-import com.amazon.customerService.model.Customer;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
+@ApplicationScoped
+@JBossLog
+public class EventBridgeService {
 
-public class AbstractService {
+  private final EventBridgeClient eventBridgeClient;
 
-  public static final String TABLE_NAME               = "Customer";
-  public static final String ID_COLUMN                = "Id";
-  public static final String NAME_COLUMN              = "Name";
-  public static final String EMAIL_COLUMN             = "Email";
-  public static final String ACCOUNT_NUMBER_COLUMN    = "AccountNumber";
-  public static final String REGISTRATION_DATE_COLUMN = "RegistrationDate";
-
-  private final DateTimeFormatter formatter;
-
-  public AbstractService() {
-    formatter = DateTimeFormatter
-        .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-        .withZone(UTC);
-  }
-
-  public String getTableName() {
-    return TABLE_NAME;
-  }
-
-  protected ScanRequest scanRequest() {
-    return ScanRequest
+  public EventBridgeService() {
+    eventBridgeClient = EventBridgeClient
         .builder()
-        .tableName(getTableName())
-        .attributesToGet(ID_COLUMN, NAME_COLUMN, EMAIL_COLUMN, ACCOUNT_NUMBER_COLUMN,
-                         REGISTRATION_DATE_COLUMN)
+        .credentialsProvider(WebIdentityTokenFileCredentialsProvider.create())
+        .httpClient(ApacheHttpClient.create())
         .build();
   }
 
-  protected PutItemRequest putRequest(Customer customer) {
-    Map<String, AttributeValue> item = new HashMap<>();
+  public void writeMessageToEventBridge(String message) {
 
-    item.put(ID_COLUMN, AttributeValue
+    PutEventsRequestEntry reqEntry = PutEventsRequestEntry
         .builder()
-        .s(customer.getId())
-        .build());
-    item.put(NAME_COLUMN, AttributeValue
-        .builder()
-        .s(customer.getName())
-        .build());
-    item.put(EMAIL_COLUMN, AttributeValue
-        .builder()
-        .s(customer.getEmail())
-        .build());
-    item.put(ACCOUNT_NUMBER_COLUMN,
-             AttributeValue
-                 .builder()
-                 .s(customer.getAccountNumber())
-                 .build());
-    item.put(REGISTRATION_DATE_COLUMN,
-             AttributeValue
-                 .builder()
-                 .s(formatter.format(customer.getRegDate()))
-                 .build());
-
-    return PutItemRequest
-        .builder()
-        .tableName(getTableName())
-        .item(item)
+        .source("com.amazon.customerservice")
+        .eventBusName("com.amazon.customerservice")
+        .detail(message)
+        .detailType("com.amazon.customerservice")
         .build();
-  }
 
-  protected DeleteItemRequest deleteRequest(String id) {
-    Map<String, AttributeValue> key = new HashMap<>();
-    key.put(ID_COLUMN, AttributeValue
+    PutEventsRequest eventsRequest = PutEventsRequest
         .builder()
-        .s(id)
-        .build());
-
-    return DeleteItemRequest
-        .builder()
-        .tableName(TABLE_NAME)
-        .key(key)
+        .entries(reqEntry)
         .build();
-  }
 
-  protected GetItemRequest getRequest(String id) {
-    Map<String, AttributeValue> key = new HashMap<>();
-    key.put(ID_COLUMN, AttributeValue
-        .builder()
-        .s(id)
-        .build());
-
-    return GetItemRequest
-        .builder()
-        .tableName(TABLE_NAME)
-        .key(key)
-        .build();
+    PutEventsResponse result = eventBridgeClient.putEvents(eventsRequest);
+    for (PutEventsResultEntry resultEntry : result.entries()) {
+      if (resultEntry.eventId() != null) {
+        log.info("Event Id: " + resultEntry.eventId());
+      }
+      else {
+        log.error("Injection failed with Error Code: " + resultEntry.errorCode());
+        log.error("Error Message: " + resultEntry.errorMessage());
+        throw new RuntimeException(
+            "EventBridge error, Error code: " + resultEntry.errorCode() + "Error Message: "
+                + resultEntry.errorMessage());
+      }
+    }
   }
 }

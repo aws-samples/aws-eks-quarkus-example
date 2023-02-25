@@ -20,14 +20,13 @@
 package com.amazon.customerService.service;
 
 import com.amazon.customerService.model.Customer;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
 import software.amazon.awssdk.auth.credentials.WebIdentityTokenFileCredentialsProvider;
 import software.amazon.awssdk.core.SdkSystemSetting;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-
-import javax.enterprise.context.ApplicationScoped;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class CustomerService extends AbstractService {
@@ -36,27 +35,34 @@ public class CustomerService extends AbstractService {
 
     public CustomerService() {
 
-        System.setProperty(SdkSystemSetting.SYNC_HTTP_SERVICE_IMPL.property(), "software.amazon.awssdk.http.apache.ApacheSdkHttpService");
+        System.setProperty(SdkSystemSetting.SYNC_HTTP_SERVICE_IMPL.property(),
+                           "software.amazon.awssdk.http.apache.ApacheSdkHttpService");
 
-        dynamoDB = DynamoDbClient.builder()
-                .credentialsProvider(WebIdentityTokenFileCredentialsProvider.create())
-                .httpClient(ApacheHttpClient.create())
-                .build();
+        dynamoDB = DynamoDbClient
+            .builder()
+            .credentialsProvider(WebIdentityTokenFileCredentialsProvider.create())
+            .httpClient(ApacheHttpClient.create())
+            .build();
     }
 
     public List<Customer> findAll() {
-        return dynamoDB.scanPaginator(scanRequest()).items().stream()
-                .map(Customer::from)
-                .collect(Collectors.toList());
+        return dynamoDB
+            .scanPaginator(scanRequest())
+            .items()
+            .stream()
+            .map(Customer::from)
+            .collect(Collectors.toList());
     }
 
-    public List<Customer> add(Customer customer) {
+    public Customer add(Customer customer) {
         dynamoDB.putItem(putRequest(customer));
-        return findAll();
+        return customer;
     }
 
     public Customer get(String id) {
-        return Customer.from(dynamoDB.getItem(getRequest(id)).item());
+        return Customer.from(dynamoDB
+                                 .getItem(getRequest(id))
+                                 .item());
     }
 
     public Customer delete(String id) {
