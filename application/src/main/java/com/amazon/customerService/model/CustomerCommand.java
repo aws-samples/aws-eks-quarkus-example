@@ -19,19 +19,25 @@
 
 package com.amazon.customerService.model;
 
+
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@RegisterForReflection
 public class CustomerCommand {
 
-    public static final String DELETE = "Delete";
+  public static final String DELETE = "Delete";
 
-    public static final String ADD = "Add";
+  public static final String ADD = "Add";
 
-    private final String command;
+  private  String command;
 
-    private final String customerId;
+  private  String customerId;
 
-    public CustomerCommand(String command, String customerId) {
-        this.command = command;
-        this.customerId = customerId;
-    }
 
 }

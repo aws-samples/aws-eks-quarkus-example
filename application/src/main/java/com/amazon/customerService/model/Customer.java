@@ -19,123 +19,65 @@
 
 package com.amazon.customerService.model;
 
+import static com.amazon.customerService.service.AbstractService.ACCOUNT_NUMBER_COLUMN;
+import static com.amazon.customerService.service.AbstractService.EMAIL_COLUMN;
+import static com.amazon.customerService.service.AbstractService.ID_COLUMN;
+import static com.amazon.customerService.service.AbstractService.NAME_COLUMN;
+import static com.amazon.customerService.service.AbstractService.REGISTRATION_DATE_COLUMN;
+import static java.time.ZoneOffset.UTC;
+import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
+
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Map;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.util.Date;
-import java.util.Map;
-import java.util.Objects;
-
-import static com.amazon.customerService.service.AbstractService.*;
-
 @RegisterForReflection
+@Data
+@NoArgsConstructor
 public class Customer {
 
-    private static final SimpleDateFormat sdf;
+  private String id, name, email, accountNumber;
+  private Instant regDate;
 
-    static {
-        sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-    }
+  public Customer(final Customer customer) {
+    this.id            = customer.id;
+    this.name          = customer.name;
+    this.accountNumber = customer.accountNumber;
+    this.email         = customer.email;
+    this.regDate       = customer.regDate;
+  }
 
-    private String id, name, email, accountNumber;
-    private Instant regDate;
+  public static Customer from(Map<String, AttributeValue> item) {
+    Customer customer = new Customer();
 
-    public Customer() {
-    }
+    customer.setAccountNumber(item
+                                  .get(ACCOUNT_NUMBER_COLUMN)
+                                  .s());
+    customer.setEmail(item
+                          .get(EMAIL_COLUMN)
+                          .s());
+    customer.setName(item
+                         .get(NAME_COLUMN)
+                         .s());
+    customer.setAccountNumber(item
+                                  .get(ACCOUNT_NUMBER_COLUMN)
+                                  .s());
+    customer.setId(item
+                       .get(ID_COLUMN)
+                       .s());
 
-    public Customer(final Customer customer) {
-        this.id = customer.id;
-        this.name = customer.name;
-        this.accountNumber = customer.accountNumber;
-        this.email = customer.email;
-        this.regDate = customer.regDate;
-    }
+    customer.setRegDate(LocalDateTime
+                            .parse(item
+                                       .get(REGISTRATION_DATE_COLUMN)
+                                       .s(), ISO_DATE_TIME)
+                            .toInstant(UTC));
 
-    public static Customer from(Map<String, AttributeValue> item) {
-        Customer customer = new Customer();
+    return customer;
+  }
 
-        customer.setAccountNumber(item.get(ACCOUNT_NUMBER_COLUMN).s());
-        customer.setEmail(item.get(EMAIL_COLUMN).s());
-        customer.setName(item.get(NAME_COLUMN).s());
-        customer.setAccountNumber(item.get(ACCOUNT_NUMBER_COLUMN).s());
-        customer.setId(item.get(ID_COLUMN).s());
 
-        Date registrationDate = null;
-
-        try {
-            registrationDate = sdf.parse(item.get(REGISTRATION_DATE_COLUMN).s());
-        } catch (ParseException exc) {
-        }
-
-        customer.setRegDate(registrationDate.toInstant());
-
-        return customer;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
-
-    public Instant getRegDate() {
-        return regDate;
-    }
-
-    public void setRegDate(Instant regDate) {
-        this.regDate = regDate;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Customer customer = (Customer) o;
-        return id.equals(customer.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    @Override
-    public String toString() {
-        return "Customer{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                ", accountNumber='" + accountNumber + '\'' +
-                ", regDate=" + regDate +
-                '}';
-    }
 }

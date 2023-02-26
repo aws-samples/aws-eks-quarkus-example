@@ -19,7 +19,8 @@
 
 package com.amazon.customerService.service;
 
-import org.jboss.logging.Logger;
+import javax.enterprise.context.ApplicationScoped;
+import lombok.extern.jbosslog.JBossLog;
 import software.amazon.awssdk.auth.credentials.WebIdentityTokenFileCredentialsProvider;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
@@ -28,40 +29,47 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsResultEntry;
 
-import javax.enterprise.context.ApplicationScoped;
-
 @ApplicationScoped
+@JBossLog
 public class EventBridgeService {
 
-    private static final Logger LOG = Logger.getLogger(EventBridgeService.class);
+  private final EventBridgeClient eventBridgeClient;
 
-    private final EventBridgeClient eventBridgeClient;
+  public EventBridgeService() {
+    eventBridgeClient = EventBridgeClient
+        .builder()
+        .credentialsProvider(WebIdentityTokenFileCredentialsProvider.create())
+        .httpClient(ApacheHttpClient.create())
+        .build();
+  }
 
-    public EventBridgeService() {
-        eventBridgeClient = EventBridgeClient.builder()
-                .credentialsProvider(WebIdentityTokenFileCredentialsProvider.create())
-                .httpClient(ApacheHttpClient.create())
-                .build();
+  public void writeMessageToEventBridge(String message) {
+
+    PutEventsRequestEntry reqEntry = PutEventsRequestEntry
+        .builder()
+        .source("com.amazon.customerservice")
+        .eventBusName("com.amazon.customerservice")
+        .detail(message)
+        .detailType("com.amazon.customerservice")
+        .build();
+
+    PutEventsRequest eventsRequest = PutEventsRequest
+        .builder()
+        .entries(reqEntry)
+        .build();
+
+    PutEventsResponse result = eventBridgeClient.putEvents(eventsRequest);
+    for (PutEventsResultEntry resultEntry : result.entries()) {
+      if (resultEntry.eventId() != null) {
+        log.info("Event Id: " + resultEntry.eventId());
+      }
+      else {
+        log.error("Injection failed with Error Code: " + resultEntry.errorCode());
+        log.error("Error Message: " + resultEntry.errorMessage());
+        throw new RuntimeException(
+            "EventBridge error, Error code: " + resultEntry.errorCode() + "Error Message: "
+                + resultEntry.errorMessage());
+      }
     }
-
-    public void writeMessageToEventBridge(String message) {
-
-        PutEventsRequestEntry reqEntry = PutEventsRequestEntry.builder()
-                .source("com.amazon.customerservice")
-                .detail(message)
-                .build();
-
-        PutEventsRequest eventsRequest = PutEventsRequest.builder()
-                .entries(reqEntry)
-                .build();
-
-        PutEventsResponse result = eventBridgeClient.putEvents(eventsRequest);
-        for (PutEventsResultEntry resultEntry : result.entries()) {
-            if (resultEntry.eventId() != null) {
-                LOG.info("Event Id: " + resultEntry.eventId());
-            } else {
-                LOG.error("Injection failed with Error Code: " + resultEntry.errorCode());
-            }
-        }
-    }
+  }
 }
