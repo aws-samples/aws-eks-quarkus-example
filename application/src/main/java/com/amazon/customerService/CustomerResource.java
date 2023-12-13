@@ -26,8 +26,11 @@ import com.amazon.customerService.service.EventBridgeService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -50,7 +53,7 @@ public class CustomerResource {
   @GET
   public List<Customer> list() {
     log.info("List all customers");
-    return customerService.findAll();
+    return new ArrayList<>(customerService.findAll());
   }
 
   @GET

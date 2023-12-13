@@ -40,12 +40,11 @@ public class AbstractService {
     public static final String ACCOUNT_NUMBER_COLUMN    = "AccountNumber";
     public static final String REGISTRATION_DATE_COLUMN = "RegistrationDate";
 
-    private final DateTimeFormatter formatter;
-
-    public AbstractService() {
-        formatter = DateTimeFormatter
+    private final DateTimeFormatter formatter = DateTimeFormatter
             .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
             .withZone(UTC);
+
+    public AbstractService() {
     }
 
     public String getTableName() {
@@ -68,19 +67,23 @@ public class AbstractService {
             .builder()
             .s(customer.getId())
             .build());
+
         item.put(NAME_COLUMN, AttributeValue
             .builder()
             .s(customer.getName())
             .build());
+
         item.put(EMAIL_COLUMN, AttributeValue
             .builder()
             .s(customer.getEmail())
             .build());
+
         item.put(ACCOUNT_NUMBER_COLUMN,
                  AttributeValue
                      .builder()
                      .s(customer.getAccountNumber())
                      .build());
+
         item.put(REGISTRATION_DATE_COLUMN,
                  AttributeValue
                      .builder()
